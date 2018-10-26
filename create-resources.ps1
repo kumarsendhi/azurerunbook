@@ -6,6 +6,7 @@ $rg = Get-AutomationVariable -Name 'ResourceGroupName'
 $location = Get-AutomationVariable -Name 'Location'
 $storageAccountName = Get-AutomationVariable -Name 'storageAccountName'
 $vaultName = Get-AutomationVariable -Name 'vaultName'
+$automationAccountName = Get-AutomationVariable -Name 'automationAccountName'
 
 InlineScript{
 #Resource Group Creation
@@ -55,15 +56,39 @@ New-AzureRmKeyVault `
         -Tag @{Department="Cloud Choice";Author="Kumar";}
 $j = Set-AzureRmKeyVaultAccessPolicy `
         -VaultName $using:vaultName `
-        -PermissionsToSecrets get, set `
+        -PermissionsToSecrets get, list, set, delete, backup, restore, recover, purge `
         -ObjectId (Get-AzureRmADGroup -SearchString 'seyoniacowner')[0].Id `
         -ResourceGroupName $using:rg `
         -PermissionsToKeys get, create  
-Write-Output $j
+<#
+$k = Set-AzureRmKeyVaultAccessPolicy `
+        -VaultName $using:vaultName `
+        -PermissionsToSecrets get, list, set, delete, backup, restore, recover, purge `
+        -ObjectId f6a5a367-d898-483e-89cf-d2b3ba25083e `
+        -ResourceGroupName $using:rg `
+        -PermissionsToKeys get, create
+#>
+$automationApplicationID = (Get-AutomationConnection -Name 'AzureRunAsConnection').ApplicationID
+$k = Set-AzureRmKeyVaultAccessPolicy `
+        -VaultName $using:vaultName `
+        -PermissionsToSecrets get, list, set, delete, backup, restore, recover, purge `
+        -ServicePrincipalName $automationApplicationID `
+        -ResourceGroupName $using:rg `
+        -PermissionsToKeys get, create
+
+Write-Output $k
 }
 else{
 Write-Output "Using existing Storage Account '$storageAccountName'";
 }
-Write-Output "Set Azure RM KeyVault Access policy"
+if(!$storageName){
+$i = Get-AzureRmStorageAccountKey -ResourceGroupName $using:rg -Name $using:storageAccountName
+$secretvalue = ConvertTo-SecureString $i.GetValue(0).Value -AsPlainText -Force
+Set-AzureKeyVaultSecret -VaultName seyoniackeyvault -Name seyoniacstorage -SecretValue $secretvalue
+}
+else{
+Write-Output "Azure Service not available"
+exit
+}
 }
 }
