@@ -84,7 +84,7 @@ Write-Output "Using existing Storage Account '$storageAccountName'";
 if(!$storageName){
 $i = Get-AzureRmStorageAccountKey -ResourceGroupName $using:rg -Name $using:storageAccountName
 $secretvalue = ConvertTo-SecureString $i.GetValue(0).Value -AsPlainText -Force
-Set-AzureKeyVaultSecret -VaultName seyoniackeyvault -Name seyoniacstorage -SecretValue $secretvalue
+Set-AzureKeyVaultSecret -VaultName $using:vaultName -Name $using:storageAccountName -SecretValue $secretvalue
 }
 else{
 Write-Output "Azure Service not available"
